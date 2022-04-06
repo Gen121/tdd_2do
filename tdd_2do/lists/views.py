@@ -3,4 +3,5 @@ from django.shortcuts import render
 
 def home_page(request):
     """домашняя страница"""
-    return render(request, 'home.html')
+    context = {'new_item_text': request.POST.get('item_text', '')}
+    return render(request, 'home.html', context=context)
