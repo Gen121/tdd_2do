@@ -21,15 +21,18 @@ class HomePageTest(TestCase):
         # TODO Вместо аннотации 'Any' изменить на требуемый
         # Код с душком: тест POST-запроса слишком длинный?
         ITEM_OBJECTS_COUNT: int = 1
-        response: Any = self.client.post(
+        self.client.post(
             '/', data={'item_text': 'A new list item'})
         self.assertEqual(Item.objects.count(), ITEM_OBJECTS_COUNT)
-
         new_item: Any = Item.objects.first()
         self.assertEqual(new_item.text, 'A new list item')
 
-        self.assertIn('A new list item', response.content.decode())
-        self.assertTemplateUsed(response, 'home.html')
+    def test_redirects_after_POST(self):
+        """тест: переадресует после POST запроса на / """
+        response: Any = self.client.post(
+            '/', data={'item_text': 'A new list item'})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['location'], '/')
 
     def test_only_save_items_when_necessary(self):
         """тест: сохраняет элементы только когда нужно"""
