@@ -1,5 +1,4 @@
 from typing import Any
-
 # from django.http import HttpResponse
 from django.test import TestCase
 
@@ -13,6 +12,7 @@ class HomePageTest(TestCase):
         """тест: домашняя страница использует правильный html шаблон
         """
         response: Any = self.client.get('/')
+
         self.assertTemplateUsed(response, 'home.html')
 
     def test_can_save_a_POST_request(self):
@@ -21,8 +21,10 @@ class HomePageTest(TestCase):
         # TODO Вместо аннотации 'Any' изменить на требуемый
         # Код с душком: тест POST-запроса слишком длинный?
         ITEM_OBJECTS_COUNT: int = 1
+
         self.client.post(
             '/', data={'item_text': 'A new list item'})
+
         self.assertEqual(Item.objects.count(), ITEM_OBJECTS_COUNT)
         new_item: Any = Item.objects.first()
         self.assertEqual(new_item.text, 'A new list item')
@@ -31,12 +33,23 @@ class HomePageTest(TestCase):
         """тест: переадресует после POST запроса на / """
         response: Any = self.client.post(
             '/', data={'item_text': 'A new list item'})
+
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['location'], '/')
+
+    def test_display_all_list_items(self):
+        Item.objects.create(text='item 1')
+        Item.objects.create(text='item 2')
+
+        response = self.client.get('/')
+
+        self.assertIn('item 1', response.content.decode())
+        self.assertIn('item 2', response.content.decode())
 
     def test_only_save_items_when_necessary(self):
         """тест: сохраняет элементы только когда нужно"""
         self.client.get('/')
+
         self.assertEqual(Item.objects.count(), 0)
 
 
