@@ -62,8 +62,10 @@ class ListViewTest(TestCase):
 
     def test_display_all_list_items(self):
         """тест: отображения списка элементов по URL"""
-        Item.objects.create(text='item 1')
-        Item.objects.create(text='item 2')
+        list_ = List.objects.create()
+
+        Item.objects.create(text='item 1', list=list_)
+        Item.objects.create(text='item 2', list=list_)
 
         response = self.client.get('/lists/one-single-list-in-the-world/')
 
