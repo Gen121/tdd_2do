@@ -4,6 +4,7 @@ from django.test import LiveServerTestCase
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 
 
 MAX_WAIT = 10
@@ -11,6 +12,8 @@ MAX_WAIT = 10
 
 class NewVisitorTest(LiveServerTestCase):
     """Тест нового посетителя"""
+    # Dместо хардкодинга localhost(порт 8000)
+    # LiveServerTestCase имеет атрибут live_server_url
 
     def setUp(self):
         """Установка"""
@@ -25,8 +28,8 @@ class NewVisitorTest(LiveServerTestCase):
         start_time = time.time()
         while True:
             try:
-                table = self.browser.find_element_by_id('id_list_table')
-                rows = table.find_elements_by_tag_name('tr')
+                table = self.browser.find_element(By.ID, 'id_list_table')
+                rows = table.find_elements(By.TAG_NAME, 'tr')
                 self.assertIn(row_text, [row.text for row in rows],
                               'Новый элемент списка не появился в таблице,'
                               f'в ней содержится: {table.text}')
@@ -50,11 +53,11 @@ class NewVisitorTest(LiveServerTestCase):
         # Она видит, что заголовок и шапка страницы говорят о списках
         # неотложных дел
         self.assertIn('To-Do lists', self.browser.title)
-        header_text = self.browser.find_element_by_tag_name('h1').text
+        header_text = self.browser.find_element(By.TAG_NAME, 'h1').text
         self.assertIn('To-Do', header_text)
 
         # Ей сразу же предлагается ввести элемент списка
-        inputbox = self.browser.find_element_by_id('id_new_item')
+        inputbox = self.browser.find_element(By.ID, 'id_new_item')
         self.assertEqual(
             inputbox.get_attribute('placeholder'),
             'Enter a to-do item'
@@ -72,7 +75,7 @@ class NewVisitorTest(LiveServerTestCase):
         # Текстовое поле по-прежнему приглашает ее добавить еще один элемент.
         # Она вводит "Сделать мушку из павлиньих перьев"
         # (Эдит очень методична)
-        inputbox = self.browser.find_element_by_id('id_new_item')
+        inputbox = self.browser.find_element(By.ID, 'id_new_item')
         inputbox.send_keys('Сделать мушку из павлиньих перьев')
         inputbox.send_keys(Keys.ENTER)
 
@@ -80,10 +83,51 @@ class NewVisitorTest(LiveServerTestCase):
         self.wait_for_row_in_list_table('1: Купить павлиньи перья')
         self.wait_for_row_in_list_table(
             '2: Сделать мушку из павлиньих перьев')
+        # Удовлетворенная, она снова ложится спать
 
-        # Эдит интересно, запомнит ли сайт ее список. Далее она видит,
-        # что сайт сгенерировал для нее уникальный URL-адрес – об этом
-        # выводится небольшой текст с объяснениями.
+    def test_multiple_users_can_start_lists_at_different_urls(self):
+        """многочисленные пользователи могут начать списки по разным url"""
+        # Эдит начинает новый список
+        self.browser.get(self.live_server_url)
+        inputbox = self.browser.find_element(By.ID, 'id_new_item')
+        inputbox.send_keys('Купить павлинии перья')
+        inputbox.send_keys(Keys.ENTER)
+        self.wait_for_row_in_list_table('1: Купить павлинии перья')
+
+        # Она замечает, что её список имеет уникальный URL- адрес
+        edith_list_url = self.browser.current_url
+        self.assertRegex(edith_list_url, '/lists/.+')
+
+        # Теперь новый польздователь, Фрэнсис, приходит на сайт
+        # Мы используем новыйсеанс браузера, тем самым обеспечивая, чтобы
+        # никакая информация от Эдит не прошла через данные cookie и пр.
+        self.browser.quit()
+        self.browser = webdriver.Firefox()
+
+        # Френсис посещает домашнююстраницую Нет никаких признаков Эдит
+        self.browser.get(self.live_server_url)
+        page_text = self.browser.find_element(By.NAME, 'body').text
+        self.assertNotIn('Купить павлинии перья', page_text)
+        self.assertNotIn('Сделать мушку из павлиньих перьев', page_text)
+        
+        # Френсис начинает новый список, вводя новый эдемент
+        # Он не менее интересен, чем список Эдит...
+        inputbox = self.browser.find_element(By.ID, 'id_new_item')
+        inputbox.send_keys('Купить молоко')
+        inputbox.send_keys(Keys.ENTER)
+        self.wait_for_row_in_list_table('Купить молоко')
+
+        # Фрэнсис получает уникальный URL-адрес
+        francis_list_url = self.browser.current_url
+        self.assertRegex(francis_list_url, '/lists/.+')
+        self.assertNotEqual(francis_list_url, edith_list_url)
+
+        # Опять-таки, нет ни следа от списка Эдит
+        page_text = self.browser.find_element(By.TAG_NAME, 'body').text
+        self.assertNotIn('Купить павлинии перья', page_text)
+        self.assertNotIn('Сделать мушку из павлиньих перьев', page_text)
+        self.assertIn('Купить молоко', page_text)
+
         self.fail('Закончить тест!')
         # Она посещает этот URL-адрес – ее список по-прежнему там.
         # Удовлетворенная, она снова ложится спать
