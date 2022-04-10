@@ -99,14 +99,14 @@ class NewVisitorTest(LiveServerTestCase):
         self.assertRegex(edith_list_url, '/lists/.+')
 
         # Теперь новый польздователь, Фрэнсис, приходит на сайт
-        # Мы используем новыйсеанс браузера, тем самым обеспечивая, чтобы
+        # Мы используем новый сеанс браузера, тем самым обеспечивая, чтобы
         # никакая информация от Эдит не прошла через данные cookie и пр.
         self.browser.quit()
         self.browser = webdriver.Firefox()
 
         # Френсис посещает домашнююстраницую Нет никаких признаков Эдит
         self.browser.get(self.live_server_url)
-        page_text = self.browser.find_element(By.NAME, 'body').text
+        page_text = self.browser.find_element(By.TAG_NAME, 'body').text
         self.assertNotIn('Купить павлинии перья', page_text)
         self.assertNotIn('Сделать мушку из павлиньих перьев', page_text)
         
