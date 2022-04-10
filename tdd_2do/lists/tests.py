@@ -14,12 +14,6 @@ class HomePageTest(TestCase):
 
         self.assertTemplateUsed(response, 'home.html')
 
-    def test_only_save_items_when_necessary(self):
-        """тест: сохраняет элементы только когда нужно"""
-        self.client.get('/')
-
-        self.assertEqual(Item.objects.count(), 0)
-
 
 class ItemModelTesr(TestCase):
     """Тест модели элемента списка"""
