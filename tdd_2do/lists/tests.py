@@ -2,7 +2,7 @@ from typing import Any
 # from django.http import HttpResponse
 from django.test import TestCase
 
-from lists.models import Item
+from lists.models import Item, List
 
 
 class HomePageTest(TestCase):
@@ -15,7 +15,7 @@ class HomePageTest(TestCase):
         self.assertTemplateUsed(response, 'home.html')
 
 
-class ItemModelTesr(TestCase):
+class ListAndItemModelTest(TestCase):
     """Тест модели элемента списка"""
 
     def test_saving_and_retriving_items(self):
@@ -24,13 +24,21 @@ class ItemModelTesr(TestCase):
         # Не рекомендуется писать так в реальной ситуации
         # В главе 15 мы этот тест перепишем, чтобы он стал намного короче
         """тест: сохранение и получение моделей списка"""
+        list_ = List()
+        list_.save()
+
         first_item = Item()
         first_item.text = 'The first (Ever) list item'
+        first_item.list = list_
         first_item.save()
 
         second_item = Item()
         second_item.text = 'Item the second'
+        second_item.list = list_
         second_item.save()
+
+        saved_list = List.objects.first()
+        self.assertEqual(saved_list, list_)
 
         saved_items = Item.objects.all()
         self.assertEqual(saved_items.count(), 2)
@@ -38,7 +46,9 @@ class ItemModelTesr(TestCase):
         first_saved_item = saved_items[0]
         second_saved_item = saved_items[1]
         self.assertEqual(first_saved_item.text, 'The first (Ever) list item')
+        self.assertEqual(first_item.list, list_)
         self.assertEqual(second_saved_item.text, 'Item the second')
+        self.assertEqual(second_item.list, list_)
 
 
 class ListViewTest(TestCase):
