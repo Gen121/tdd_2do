@@ -14,30 +14,6 @@ class HomePageTest(TestCase):
 
         self.assertTemplateUsed(response, 'home.html')
 
-    def test_can_save_a_POST_request(self):
-        """тест: можно сохранить POST запрос"""
-        # TODO Вместо аннотации 'Any' изменить на требуемый
-        # Код с душком: тест POST-запроса слишком длинный?
-        ITEM_OBJECTS_COUNT: int = 1
-
-        self.client.post(
-            '/', data={'item_text': 'A new list item'})
-
-        self.assertEqual(Item.objects.count(), ITEM_OBJECTS_COUNT)
-        new_item: Any = Item.objects.first()
-        self.assertEqual(new_item.text, 'A new list item')
-
-    def test_redirects_after_POST(self):
-        """тест: переадресует после POST запроса на / """
-        response: Any = self.client.post(
-            '/', data={'item_text': 'A new list item'})
-
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['location'],
-                         '/lists/one-single-list-in-the-world/')
-        # В книге предлагается использовать "один-единственный-список-в-мире"
-        # но это приводит к дополнительным проблемам, видимо с кодировкаой
-
     def test_only_save_items_when_necessary(self):
         """тест: сохраняет элементы только когда нужно"""
         self.client.get('/')
@@ -94,3 +70,33 @@ class ListViewTest(TestCase):
         # assertContains: сообщает - тест не проходит, тк новый
         # URL-адрес еще не существует, и возвращает код состояния 404:
         # "AssertionError: 404 != 200: Couldn't retrieve content: Response..."
+
+
+class NewListTest(TestCase):
+    """тест нового списка"""
+
+    def test_can_save_a_POST_request(self):
+        """тест: можно сохранить POST запрос"""
+        # TODO Вместо аннотации 'Any' изменить на требуемый
+        # Код с душком: тест POST-запроса слишком длинный?
+        ITEM_OBJECTS_COUNT: int = 1
+
+        self.client.post(
+            '/lists/new', data={'item_text': 'A new list item'})
+
+        self.assertEqual(Item.objects.count(), ITEM_OBJECTS_COUNT)
+        new_item: Any = Item.objects.first()
+        self.assertEqual(new_item.text, 'A new list item')
+
+    def test_redirects_after_POST(self):
+        """тест: переадресует после POST запроса на / """
+        response: Any = self.client.post(
+            '/lists/new', data={'item_text': 'A new list item'})
+
+        self.assertRedirects(response, '/lists/one-single-list-in-the-world/')
+        # assertRedirects эквивалентен двум следующим ассертам:
+        # self.assertEqual(response.status_code, 302)
+        # self.assertEqual(response['location'], '/lists/one-...
+
+        # В книге предлагается исп. "/lists/один-единственный-список-в-мире/"
+        # но это приводит к дополнительным проблемам, видимо, с кодировкаой

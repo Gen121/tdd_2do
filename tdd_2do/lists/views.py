@@ -18,3 +18,9 @@ def view_list(request):
     context: Dict[str, Any] = {}
     context['items'] = Item.objects.all()
     return render(request, 'list.html', context=context)
+
+
+def new_list(request):
+    """новый список"""
+    Item.objects.create(text=request.POST.get('item_text'))
+    return redirect('/lists/one-single-list-in-the-world/')
