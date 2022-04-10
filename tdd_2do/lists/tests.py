@@ -9,15 +9,13 @@ class HomePageTest(TestCase):
     """Теcт домашней страницы"""
 
     def test_home_page_use_correct_template(self):
-        """тест: домашняя страница использует правильный html шаблон
-        """
+        """тест: домашняя страница использует правильный html шаблон"""
         response: Any = self.client.get('/')
 
         self.assertTemplateUsed(response, 'home.html')
 
     def test_can_save_a_POST_request(self):
-        """тест: можно сохранить POST запрос
-        """
+        """тест: можно сохранить POST запрос"""
         # TODO Вместо аннотации 'Any' изменить на требуемый
         # Код с душком: тест POST-запроса слишком длинный?
         ITEM_OBJECTS_COUNT: int = 1
@@ -35,16 +33,10 @@ class HomePageTest(TestCase):
             '/', data={'item_text': 'A new list item'})
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response['location'], '/')
-
-    def test_display_all_list_items(self):
-        Item.objects.create(text='item 1')
-        Item.objects.create(text='item 2')
-
-        response = self.client.get('/')
-
-        self.assertIn('item 1', response.content.decode())
-        self.assertIn('item 2', response.content.decode())
+        self.assertEqual(response['location'],
+                         '/lists/one-single-list-in-the-world/')
+        # В книге предлагается использовать "один-единственный-список-в-мире"
+        # но это приводит к дополнительным проблемам, видимо с кодировкаой
 
     def test_only_save_items_when_necessary(self):
         """тест: сохраняет элементы только когда нужно"""
@@ -54,8 +46,7 @@ class HomePageTest(TestCase):
 
 
 class ItemModelTesr(TestCase):
-    """Тест модели элемента списка
-    """
+    """Тест модели элемента списка"""
 
     def test_saving_and_retriving_items(self):
         # Зто - Интегрированный тест тк опирается на внешнюю систему – бд
@@ -78,3 +69,28 @@ class ItemModelTesr(TestCase):
         second_saved_item = saved_items[1]
         self.assertEqual(first_saved_item.text, 'The first (Ever) list item')
         self.assertEqual(second_saved_item.text, 'Item the second')
+
+
+class ListViewTest(TestCase):
+    """тест представления списка"""
+
+    def test_usess_list_template(self):
+        """тест: используется шаблон списка"""
+        response: Any = self.client.get('/lists/one-single-list-in-the-world/')
+
+        self.assertTemplateUsed(response, 'list.html')
+
+    def test_display_all_list_items(self):
+        """тест: отображения списка элементов по URL"""
+        Item.objects.create(text='item 1')
+        Item.objects.create(text='item 2')
+
+        response = self.client.get('/lists/one-single-list-in-the-world/')
+
+        self.assertContains(response, 'item 1')
+        self.assertContains(response, 'item 2')
+        # по сравнению со старым вариантом assertIn:
+        # "self.assertIn('item 1', response.content.decode())" -
+        # assertContains: сообщает - тест не проходит, тк новый
+        # URL-адрес еще не существует, и возвращает код состояния 404:
+        # "AssertionError: 404 != 200: Couldn't retrieve content: Response..."

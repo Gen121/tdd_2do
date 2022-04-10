@@ -109,7 +109,7 @@ class NewVisitorTest(LiveServerTestCase):
         page_text = self.browser.find_element(By.TAG_NAME, 'body').text
         self.assertNotIn('Купить павлинии перья', page_text)
         self.assertNotIn('Сделать мушку из павлиньих перьев', page_text)
-        
+
         # Френсис начинает новый список, вводя новый эдемент
         # Он не менее интересен, чем список Эдит...
         inputbox = self.browser.find_element(By.ID, 'id_new_item')
