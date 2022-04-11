@@ -2,8 +2,15 @@ from django.conf.urls import url
 from lists import views
 
 urlpatterns = [
-    url(r'^$', views.home_page, name='home'),
-    url(r'^lists/new$', views.new_list, name='new_list'),
-    url(r'lists/one-single-list-in-the-world/$',
-        views.view_list, name='view_list')
+    url(r'^$',
+        views.home_page, name='home'),
+    url(r'^lists/new$',
+        views.new_list, name='new_list'),
+    url(r'lists/(\d+)/$',
+        views.view_list, name='view_list'),
+    url(r'lists/(\d+)/add_item$',
+        views.add_item, name='add_item'),
 ]
+# группу захвата, (.+) - "Жадное выражение" при переадресации
+# на несуществующую страницу выдает код дтвета 301 вместо 404
+# это решается использованием (\d+) - ожидающее только цифры

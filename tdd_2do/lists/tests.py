@@ -56,21 +56,35 @@ class ListViewTest(TestCase):
 
     def test_usess_list_template(self):
         """тест: используется шаблон списка"""
-        response: Any = self.client.get('/lists/one-single-list-in-the-world/')
-
+        list_ = List.objects.create()
+        response: Any = self.client.get(f'/lists/{list_.id}/')
         self.assertTemplateUsed(response, 'list.html')
 
-    def test_display_all_list_items(self):
+    def test_passes_correct_list_to_template(self):
+        """тест: передается правильныйшаблон списка"""
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
+        response: Any = self.client.get(f'/lists/{correct_list.id}/')
+        self.assertEqual(response.context['list'], correct_list)
+
+    def test_displays_only_items_for_that_list(self):
         """тест: отображения списка элементов по URL"""
-        list_ = List.objects.create()
+        correct_list = List.objects.create()
 
-        Item.objects.create(text='item 1', list=list_)
-        Item.objects.create(text='item 2', list=list_)
+        Item.objects.create(text='item 1', list=correct_list)
+        Item.objects.create(text='item 2', list=correct_list)
 
-        response = self.client.get('/lists/one-single-list-in-the-world/')
+        other_list = List.objects.create()
+
+        Item.objects.create(text='other_item 1', list=other_list)
+        Item.objects.create(text='other_item 2', list=other_list)
+
+        response: Any = self.client.get(f'/lists/{correct_list.id}/')
 
         self.assertContains(response, 'item 1')
         self.assertContains(response, 'item 2')
+        self.assertNotContains(response, 'other_item 1')
+        self.assertNotContains(response, 'other_item 2')
         # по сравнению со старым вариантом assertIn:
         # "self.assertIn('item 1', response.content.decode())" -
         # assertContains: сообщает - тест не проходит, тк новый
@@ -81,14 +95,13 @@ class ListViewTest(TestCase):
 class NewListTest(TestCase):
     """тест нового списка"""
 
-    def test_can_save_a_POST_request(self):
+    def test_can_save_a_POST_request_to_an_existing_list(self):
         """тест: можно сохранить POST запрос"""
         # TODO Вместо аннотации 'Any' изменить на требуемый
         # Код с душком: тест POST-запроса слишком длинный?
         ITEM_OBJECTS_COUNT: int = 1
 
-        self.client.post(
-            '/lists/new', data={'item_text': 'A new list item'})
+        self.client.post('/lists/new', data={'item_text': 'A new list item'})
 
         self.assertEqual(Item.objects.count(), ITEM_OBJECTS_COUNT)
         new_item: Any = Item.objects.first()
@@ -98,8 +111,45 @@ class NewListTest(TestCase):
         """тест: переадресует после POST запроса на / """
         response: Any = self.client.post(
             '/lists/new', data={'item_text': 'A new list item'})
+        new_list: Any = List.objects.first()
+        self.assertRedirects(response, '/lists/%d/' % (new_list.id,))
+        # assertRedirects эквивалентен двум следующим ассертам:
+        # self.assertEqual(response.status_code, 302)
+        # self.assertEqual(response['location'], '/lists/one-...
 
-        self.assertRedirects(response, '/lists/one-single-list-in-the-world/')
+        # В книге предлагается исп. "/lists/один-единственный-список-в-мире/"
+        # но это приводит к дополнительным проблемам, видимо, с кодировкаой
+
+
+class NewItemTest(TestCase):
+    """тест нового элемента списка"""
+    def test_can_save_a_POST_request_to_an_existing_list(self):
+        """тест: можно сохранить POST запрос"""
+        # TODO Вместо аннотации 'Any' изменить на требуемый
+        # Код с душком: тест POST-запроса слишком длинный?
+        ITEM_OBJECTS_COUNT: int = 1
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
+
+        self.client.post(
+            f'/lists/{correct_list.id}/add_item',
+            data={'item_text': 'A new list item for an existing list'})
+
+        self.assertEqual(Item.objects.count(), ITEM_OBJECTS_COUNT)
+        new_item: Any = Item.objects.first()
+        self.assertEqual(new_item.text, 'A new list item for an existing list')
+        self.assertEqual(new_item.list, correct_list)
+
+    def test_redirects_to_list_view(self):
+        """тест: переадресует после POST запроса на / """
+        other_list = List.objects.create()
+        correct_list = List.objects.create()
+
+        response: Any = self.client.post(
+            f'/lists/{correct_list.id}/add_item',
+            data={'item_text': 'A new list item for an existing list'})
+
+        self.assertRedirects(response, f'/lists/{correct_list.id}/')
         # assertRedirects эквивалентен двум следующим ассертам:
         # self.assertEqual(response.status_code, 302)
         # self.assertEqual(response['location'], '/lists/one-...
