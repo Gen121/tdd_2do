@@ -1,6 +1,6 @@
 import time
 
-from django.test import LiveServerTestCase
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.keys import Keys
@@ -10,10 +10,14 @@ from selenium.webdriver.common.by import By
 MAX_WAIT = 10
 
 
-class NewVisitorTest(LiveServerTestCase):
+class NewVisitorTest(StaticLiveServerTestCase):
     """Тест нового посетителя"""
     # Dместо хардкодинга localhost(порт 8000)
+    # from django.test import LiveServerTestCase
     # LiveServerTestCase имеет атрибут live_server_url
+
+    # from django.contrib.staticfiles.testing import StaticLiveServerTestCase
+    # StaticLiveServerTestCase позволяет тестировать статику
 
     def setUp(self):
         """Установка"""
