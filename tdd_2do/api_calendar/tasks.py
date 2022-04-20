@@ -2,18 +2,21 @@ from __future__ import print_function
 
 import json
 import os.path
+from typing import List
 
+from django.conf import settings
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-APP_TOKEN_FILE = "token.json"
-USER_TOKEN_FILE = "user_token.json"
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/tasks', ]
+
+APP_TOKEN_FILE = "token.json"
+USER_TOKEN_FILE = "user_token.json"
 
 
 def main():
@@ -58,7 +61,8 @@ def main():
 
 def get_creds_cons():
     '''Ask from console'''
-    flow = InstalledAppFlow.from_client_secrets_file(APP_TOKEN_FILE, SCOPES)
+    flow = InstalledAppFlow.from_client_secrets_file(APP_TOKEN_FILE,
+                                                     SCOPES)
     return flow.run_console()
 
 
@@ -76,7 +80,8 @@ def get_creds_saved():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(APP_TOKEN_FILE, SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                APP_TOKEN_FILE, SCOPES)
             creds = flow.run_local_server(port=0)
 
         with open(USER_TOKEN_FILE, 'w') as token:
@@ -85,41 +90,91 @@ def get_creds_saved():
     return creds
 
 
-def get_service():
-    '''Get YouTube API service w API Key only'''
-    # creds = get_creds_cons()
-    creds = get_creds_saved()
-    service = build('oauth2', 'v2', credentials=creds)
-    return service
+# Использовал при первой регистрации нужно проверить работоспособность без него
+# def get_service_auth():
+#     '''Get Auth API service with O'Auth 2.0'''
+#     # creds = get_creds_cons()
+#     creds = get_creds_saved()
+#     service = build('oauth2', 'v2', credentials=creds)
+#     return service
 
 
 def get_service_task():
-    '''Get YouTube API service w API Key only'''
+    '''Get Tasks API service with O'Auth 2.0'''
     # creds = get_creds_cons()
     creds = get_creds_saved()
     service = build('tasks', 'v1', credentials=creds)
     return service
 
 
-def get_user_info():
-    '''Get User Info'''
+def pop_tasklist_by_title(list_items: List) -> str:
+    for item in list_items:
+        try:
+            if item.get('title') == 'Task List from Python':
+                service.tasklists().delete(tasklist=item.get('id')).execute()
+        except:
+            pass
+
+
+def insert_task_list():
+    '''Create item of TaskLists'''
     service = get_service_task()
-    results = service.tasks().list().execute()
-    items = results.get('items', [])
-    if not items:
-        print('No task lists found.')
-        return
-    print('Task lists:')
-    for item in items:
-        print(u'{0} ({1})'.format(item['title'], item['id']))
+    service.tasklists().insert(
+        body={'title': 'Task List from Python'}
+        ).execute()
 
 
-def get_service_dict():
-    for i in dir(get_service_task().tasks()):
+def get_service_method_dict():
+    for i in dir(get_service_task().tasklists()):
         if not i.startswith('_'):
-            print(i)
+            for j in dir(i):
+                if not j.startswith('_'):
+                    print(f'<<< service method : {i} - {j} >>>')
+
+
+class TasksCRUD(object):
+    def __init__(self):
+        self.service = get_service_task()
+
+    def get_list_tasklists(self) -> List:
+        '''Get User List of TaskLists'''
+        response = self.service.tasklists().list().execute()
+
+        items = response.get('items', [])
+        return items
+
+    def insert_task_list(self) -> None:
+        '''Create item of TaskLists'''
+        self.service.tasklists().insert(
+            body={'title': 'Task List from Python'}).execute()
+
+    def update_task_list(self) -> None:
+        '''Update item of TaskLists'''
+        for item in self.get_list_tasklists():
+            if str(item.get('title')) == 'Task List from Python':
+                item['title'] = 'Changed Task List'
+                self.service.tasklists().update(
+                    tasklist=item['id'],
+                    body=item).execute()
+
+    def delete_task_list(self) -> None:
+        '''Delete item of TaskLists'''
+        for item in self.get_list_tasklists():
+            if str(item.get('title')) == 'Changed Task List':
+                self.service.tasklists().delete(
+                    tasklist=item['id']).execute()
 
 
 if __name__ == '__main__':
-    get_user_info()
-    # get_service_dict()
+    # Смотрим какие сервисы нам доступны
+    get_service_method_dict()
+
+    # Создаем объект TasksCRUD API c соответствующими параметрами
+    api = TasksCRUD()
+
+    # Получаем список СпискЗадач: List[< tasklist >]
+    items = api.get_list_tasklists()
+
+    print('Task lists:')
+    for item in items:
+        print(u'{0} ({1})'.format(item['title'], item['id']))
