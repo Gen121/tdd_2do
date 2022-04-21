@@ -127,9 +127,7 @@ def insert_task_list():
 def get_service_method_dict():
     for i in dir(get_service_task().tasklists()):
         if not i.startswith('_'):
-            for j in dir(i):
-                if not j.startswith('_'):
-                    print(f'<<< service method : {i} - {j} >>>')
+            print(f'<<< service method : {i} >>>')
 
 
 class TasksCRUD(object):
@@ -139,42 +137,120 @@ class TasksCRUD(object):
     def get_list_tasklists(self) -> List:
         '''Get User List of TaskLists'''
         response = self.service.tasklists().list().execute()
-
         items = response.get('items', [])
         return items
 
-    def insert_task_list(self) -> None:
+    def get_list_task(self,
+                      tasklist_id: str = 'MTExNDg5NDUyOTc4OTk1MDg1NDU6MDow'
+                      ) -> List:
+        '''Get List of Task by TaskList id'''
+        # TODO Заменить дефолтный ключ на переменную окружения
+        response = self.service.tasks().list(
+            tasklist=tasklist_id).execute()
+        items = response.get('items', [])
+        return items
+
+    def insert_tasklist(self, title: str = 'Task_List_from_Python') -> None:
         '''Create item of TaskLists'''
         self.service.tasklists().insert(
-            body={'title': 'Task List from Python'}).execute()
+            body={'title': title}).execute()
+
+    def insert_task(
+            self,
+            tasklist_id: str = 'MTExNDg5NDUyOTc4OTk1MDg1NDU6MDow',
+            title: str = 'Task_Python') -> None:
+        '''Create item of Task in TaskList by id'''
+
+        self.service.tasks().insert(
+            tasklist=tasklist_id,
+            body={'title': title}).execute()
 
     def update_task_list(self) -> None:
         '''Update item of TaskLists'''
+        # TODO изменить название метода
         for item in self.get_list_tasklists():
-            if str(item.get('title')) == 'Task List from Python':
-                item['title'] = 'Changed Task List'
+            if str(item.get('title')) == 'Task_List_from_Python':
+                item['title'] = 'Changed_Task_List'
                 self.service.tasklists().update(
                     tasklist=item['id'],
+                    body=item).execute()
+
+    def update_task_title(
+            self,
+            tasklist_id: str = 'MTExNDg5NDUyOTc4OTk1MDg1NDU6MDow',
+            title: str = 'Task_Python',
+            new_title: str = 'Changed_Task') -> None:
+        '''Update item of Task by title in TaskList by id'''
+
+        for item in self.get_list_task(tasklist_id):
+            if str(item.get('title')) == title:
+                item['title'] = new_title
+                self.service.tasks().update(
+                    task=item['id'],
+                    tasklist=tasklist_id,
                     body=item).execute()
 
     def delete_task_list(self) -> None:
         '''Delete item of TaskLists'''
         for item in self.get_list_tasklists():
-            if str(item.get('title')) == 'Changed Task List':
+            if str(item.get('title')) == 'Changed_Task_List':
                 self.service.tasklists().delete(
                     tasklist=item['id']).execute()
 
+    def delete_task(
+            self,
+            tasklist_id: str = 'MTExNDg5NDUyOTc4OTk1MDg1NDU6MDow',
+            title: str = 'Task_Python') -> None:
+        '''Delete item of Task by title in TaskList by id'''
+
+        for item in self.get_list_task(tasklist_id):
+            if str(item.get('title')) == title:
+                self.service.tasks().delete(
+                    task=item['id'],
+                    tasklist=tasklist_id).execute()
+
 
 if __name__ == '__main__':
+    import time
     # Смотрим какие сервисы нам доступны
     get_service_method_dict()
 
     # Создаем объект TasksCRUD API c соответствующими параметрами
     api = TasksCRUD()
 
-    # Получаем список СпискЗадач: List[< tasklist >]
-    items = api.get_list_tasklists()
+    # # Создадим новый список задач Test:
+    # api.insert_task_list('Test')
+    # import time; time.sleep(0.5)
+    # Test (TmR6dS0xQnlUNUo5QS1yYQ)
 
-    print('Task lists:')
+    # Создадим новый объект Task
+    # api.insert_task('TmR6dS0xQnlUNUo5QS1yYQ', 'Test')
+    # time.sleep(0.5)
+
+    # Получаем список СпискЗадач: List[< tasklist >]
+    items = api.get_list_task('TmR6dS0xQnlUNUo5QS1yYQ')
+
+    print('List:')
     for item in items:
         print(u'{0} ({1})'.format(item['title'], item['id']))
+
+    # Изменим созданный объект Task
+    # api.update_task_title('TmR6dS0xQnlUNUo5QS1yYQ', 'Test', 'Change')
+    # time.sleep(0.5)
+
+    # # Получаем список СпискЗадач: List[< tasklist >]
+    # items = api.get_list_task('TmR6dS0xQnlUNUo5QS1yYQ')
+
+    # print('List:')
+    # for item in items:
+    #     print(u'{0} ({1})'.format(item['title'], item['id']))
+
+    # # Удаляем измененный объект Task
+    # api.delete_task('TmR6dS0xQnlUNUo5QS1yYQ', 'Change')
+
+    # # Получаем список СпискЗадач: List[< tasklist >]
+    # items = api.get_list_task('TmR6dS0xQnlUNUo5QS1yYQ')
+
+    # print('List:')
+    # for item in items:
+    #     print(u'{0} ({1})'.format(item['title'], item['id']))
